@@ -153,6 +153,31 @@
           "website": {
             "description": "Company website",
             "type": "string"
+          },
+          "linkedin_url": {
+            "description": "Company LinkedIn profile URL",
+            "type": "string"
+          },
+          "account_email": {
+            "description": "Company or account email address",
+            "type": "string",
+            "format": "email"
+          },
+          "street": {
+            "description": "Street address",
+            "type": "string"
+          },
+          "city": {
+            "description": "City",
+            "type": "string"
+          },
+          "state": {
+            "description": "State or region",
+            "type": "string"
+          },
+          "country": {
+            "description": "Country",
+            "type": "string"
           }
         }
       },
