@@ -1,4 +1,12 @@
 ---
-title: 'Get job status'
+title: 'Poll job status'
 openapi: 'GET /jobs/{job_id}'
 ---
+
+This is the **shared** status endpoint for all async jobs. The `type` field in the response determines which result schema applies.
+
+When multiple job types exist, the response variants appear as tabs in the playground.
+
+**Result schemas by type:**
+
+- `research_identity` — [Completed result](/api-reference/schemas/research-identity-result)

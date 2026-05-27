@@ -21,7 +21,11 @@
   "paths": {
     "/research-identity": {
       "post": {
+        "summary": "Start job",
         "description": "Starts an identity research job for a company",
+        "x-mint": {
+          "content": "## Completed result\n\nThis endpoint returns `202` with a `job_id` immediately. Poll `GET /jobs/{job_id}` until `status` is `completed`, then read the result:\n\n```json\n{\n  \"kernel_id\": \"ker_abc123\",\n  \"legal_name\": \"Acme Corporation Inc.\"\n}\n```\n\nSee the [Completed result](/api-reference/schemas/research-identity-result) page for the full schema."
+        },
         "requestBody": {
           "description": "Company to research",
           "content": {
@@ -73,7 +77,8 @@
     },
     "/jobs/{job_id}": {
       "get": {
-        "description": "Returns the status of a job. When complete, includes a typed result determined by the job type.",
+        "summary": "Poll job status",
+        "description": "Returns the status of a job. The response shape depends on the job `type`. When `status` is `completed`, the typed `result` is included.",
         "parameters": [
           {
             "name": "job_id",
@@ -92,6 +97,28 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/JobStatusResponse"
+                },
+                "examples": {
+                  "pending": {
+                    "summary": "Job pending",
+                    "value": {
+                      "job_id": "job_abc123",
+                      "type": "research_identity",
+                      "status": "pending"
+                    }
+                  },
+                  "completed": {
+                    "summary": "Job completed",
+                    "value": {
+                      "job_id": "job_abc123",
+                      "type": "research_identity",
+                      "status": "completed",
+                      "result": {
+                        "kernel_id": "ker_abc123",
+                        "legal_name": "Acme Corporation Inc."
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -159,6 +186,7 @@
         }
       },
       "ResearchIdentityJobStatus": {
+        "title": "Research identity",
         "required": [
           "job_id",
           "type",

@@ -15,15 +15,14 @@ description: 'Identity research API reference'
 
 ## Authentication
 
-All API endpoints are authenticated using an API key sent in the `X-API-Key` header and picked up from the specification file.
+All API endpoints are authenticated using an API key sent in the `X-API-Key` header.
 
 ## Job workflow
 
-Jobs run asynchronously across the API. Each async operation returns a job that you poll via the shared `GET /jobs/{job_id}` endpoint.
+All operations run asynchronously. Each one returns a `job_id` you poll until the result is ready.
 
-1. Send a `POST` request to start a job (for example, `/research-identity` with `name` and `website`).
-2. The `202` response includes a `job_id`, a `Location` header pointing to the job status URL, and a `Retry-After` header with the suggested polling interval in seconds.
-3. Poll `GET /jobs/{job_id}` until `status` is `completed` or `failed`. Respect the `Retry-After` value between requests.
-4. When complete, read the typed `result` from the response. The shape of `result` depends on the job `type` field (for example, `research_identity` jobs return `kernel_id` and `legal_name`).
+1. **Start** — call the operation endpoint (e.g. [Research identity](/api-reference/endpoint/research-identity)) with its required fields.
+2. **Poll** — call [Poll job status](/api-reference/endpoint/get-job) with the `job_id`. Respect the `Retry-After` header between requests.
+3. **Read result** — when `status` is `completed`, the typed `result` is included. Its shape depends on the job `type` — see the operation's **Completed result** page for the schema.
 
-While the job is in progress, `status` will be `pending` or `processing`.
+While in progress, `status` will be `pending` or `processing`. If processing fails, `status` will be `failed`.
