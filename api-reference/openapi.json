@@ -1,8 +1,8 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Identity Research API",
-    "description": "API for researching company identity asynchronously via job-based endpoints",
+    "title": "Kernel API",
+    "description": "API for resolving company identity and retrieving entity data asynchronously",
     "license": {
       "name": "MIT"
     },
@@ -10,28 +10,28 @@
   },
   "servers": [
     {
-      "url": "http://sandbox.mintlify.com"
+      "url": "https://api.kernel.ai"
     }
   ],
   "security": [
     {
-      "apiKeyAuth": []
+      "bearerAuth": []
     }
   ],
   "paths": {
-    "/v1/research-identity": {
+    "/v1/entity-resolution": {
       "post": {
-        "summary": "Start job",
-        "description": "Starts an identity research job for a company",
+        "summary": "Resolve entity",
+        "description": "Starts an entity resolution job for a company. Returns immediately with a job ID — poll `GET /v1/entity-resolution/{job_id}` until the status is `completed`.",
         "x-mint": {
-          "content": "## Completed result\n\nThis endpoint returns `202` with a `job_id` immediately. Poll `GET /v1/jobs/{job_id}` until `status` is `completed`, then read the result:\n\n```json\n{\n  \"kernel_id\": \"ker_abc123\",\n  \"legal_name\": \"Acme Corporation Inc.\"\n}\n```\n\nSee the [Completed result](/api-reference/schemas/research-identity-result) page for the full schema."
+          "content": "## Completed result\n\nThis endpoint returns `202` with a `job_id` immediately. Poll `GET /v1/entity-resolution/{job_id}` until `status` is `completed`, then read the result:\n\n```json\n{\n  \"job_id\": \"job_abc123\",\n  \"status\": \"completed\",\n  \"result\": {\n    \"kernel_id\": \"ker_abc123\",\n    \"match_status\": \"matched\",\n    \"legal_name\": \"Acme Corporation Inc.\",\n    \"trading_name\": \"Acme\"\n  }\n}\n```\n\nSee the [Completed result](/api-reference/schemas/entity-resolution-result) page for the full schema."
         },
         "requestBody": {
-          "description": "Company to research",
+          "description": "Company to resolve",
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ResearchIdentityRequest"
+                "$ref": "#/components/schemas/EntityResolutionRequest"
               }
             }
           },
@@ -63,7 +63,27 @@
             }
           },
           "400": {
-            "description": "Unexpected error",
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — missing or invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
             "content": {
               "application/json": {
                 "schema": {
@@ -75,15 +95,15 @@
         }
       }
     },
-    "/v1/jobs/{job_id}": {
+    "/v1/entity-resolution/{job_id}": {
       "get": {
-        "summary": "Poll job status",
-        "description": "Returns the status of a job. The response shape depends on the job `type`. When `status` is `completed`, the typed `result` is included.",
+        "summary": "Get entity resolution result",
+        "description": "Returns the status and result of an entity resolution job. When `status` is `completed`, the `result` object contains the resolved entity data.",
         "parameters": [
           {
             "name": "job_id",
             "in": "path",
-            "description": "ID of the job to check",
+            "description": "ID of the entity resolution job",
             "required": true,
             "schema": {
               "type": "string"
@@ -96,26 +116,57 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/JobStatusResponse"
+                  "$ref": "#/components/schemas/EntityResolutionJobStatus"
                 },
                 "examples": {
                   "pending": {
                     "summary": "Job pending",
                     "value": {
                       "job_id": "job_abc123",
-                      "type": "research_identity",
                       "status": "pending"
                     }
                   },
-                  "completed": {
-                    "summary": "Job completed",
+                  "processing": {
+                    "summary": "Job processing",
                     "value": {
                       "job_id": "job_abc123",
-                      "type": "research_identity",
+                      "status": "processing"
+                    }
+                  },
+                  "completed_matched": {
+                    "summary": "Completed — matched",
+                    "value": {
+                      "job_id": "job_abc123",
                       "status": "completed",
                       "result": {
                         "kernel_id": "ker_abc123",
-                        "legal_name": "Acme Corporation Inc."
+                        "match_status": "matched",
+                        "legal_name": "Acme Corporation Inc.",
+                        "trading_name": "Acme"
+                      }
+                    }
+                  },
+                  "completed_no_match": {
+                    "summary": "Completed — no match",
+                    "value": {
+                      "job_id": "job_abc123",
+                      "status": "completed",
+                      "result": {
+                        "kernel_id": null,
+                        "match_status": "no_match",
+                        "legal_name": null,
+                        "trading_name": null
+                      }
+                    }
+                  },
+                  "failed": {
+                    "summary": "Job failed",
+                    "value": {
+                      "job_id": "job_abc123",
+                      "status": "failed",
+                      "error": {
+                        "error": 500,
+                        "message": "Internal processing error"
                       }
                     }
                   }
@@ -123,8 +174,18 @@
               }
             }
           },
-          "400": {
-            "description": "Unexpected error",
+          "401": {
+            "description": "Unauthorized — missing or invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Job not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -139,27 +200,34 @@
   },
   "components": {
     "schemas": {
-      "ResearchIdentityRequest": {
+      "EntityResolutionRequest": {
         "type": "object",
+        "required": [
+          "name"
+        ],
         "properties": {
           "name": {
             "description": "Company name",
             "type": "string"
           },
           "website": {
-            "description": "Company website",
+            "description": "Company website URL",
+            "type": "string"
+          },
+          "legal_name": {
+            "description": "Legal or registered name of the company",
             "type": "string"
           },
           "linkedin_url": {
             "description": "Company LinkedIn profile URL",
             "type": "string"
           },
-          "account_email": {
+          "email": {
             "description": "Company or account email address",
             "type": "string",
             "format": "email"
           },
-          "street": {
+          "address": {
             "description": "Street address",
             "type": "string"
           },
@@ -189,28 +257,51 @@
           }
         }
       },
-      "ResearchIdentityResult": {
+      "EntityResolutionResult": {
         "required": [
           "kernel_id",
-          "legal_name"
+          "match_status",
+          "legal_name",
+          "trading_name"
         ],
         "type": "object",
         "properties": {
           "kernel_id": {
-            "description": "Kernel identifier for the company",
-            "type": "string"
+            "description": "Kernel identifier for the company. Null when no match is found.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "match_status": {
+            "description": "Indicates the outcome of the resolution",
+            "type": "string",
+            "enum": [
+              "matched",
+              "no_match",
+              "ambiguous"
+            ]
           },
           "legal_name": {
-            "description": "Legal name of the company",
-            "type": "string"
+            "description": "Legal name of the resolved entity. Null when no match is found.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "trading_name": {
+            "description": "Trading or brand name of the resolved entity. Null when no match is found.",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       },
-      "ResearchIdentityJobStatus": {
-        "title": "Research identity",
+      "EntityResolutionJobStatus": {
+        "title": "Entity resolution",
         "required": [
           "job_id",
-          "type",
           "status"
         ],
         "type": "object",
@@ -218,13 +309,6 @@
           "job_id": {
             "description": "Unique identifier for the job",
             "type": "string"
-          },
-          "type": {
-            "description": "Job type",
-            "type": "string",
-            "enum": [
-              "research_identity"
-            ]
           },
           "status": {
             "description": "Current status of the job",
@@ -237,31 +321,12 @@
             ]
           },
           "result": {
-            "description": "Result payload, present when status is completed. Shape depends on job type.",
-            "anyOf": [
-              {
-                "title": "Research identity",
-                "$ref": "#/components/schemas/ResearchIdentityResult"
-              },
-              {
-                "title": "Other job types",
-                "type": "object",
-                "description": "Shape varies by job type. See the operation's Completed result page."
-              }
-            ]
-          }
-        }
-      },
-      "JobStatusResponse": {
-        "oneOf": [
-          {
-            "$ref": "#/components/schemas/ResearchIdentityJobStatus"
-          }
-        ],
-        "discriminator": {
-          "propertyName": "type",
-          "mapping": {
-            "research_identity": "#/components/schemas/ResearchIdentityJobStatus"
+            "description": "Result payload, present when status is completed.",
+            "$ref": "#/components/schemas/EntityResolutionResult"
+          },
+          "error": {
+            "description": "Error details, present when status is failed.",
+            "$ref": "#/components/schemas/Error"
           }
         }
       },
@@ -283,10 +348,10 @@
       }
     },
     "securitySchemes": {
-      "apiKeyAuth": {
-        "type": "apiKey",
-        "in": "header",
-        "name": "X-API-Key"
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Include your API key as a Bearer token in the Authorization header."
       }
     }
   }
