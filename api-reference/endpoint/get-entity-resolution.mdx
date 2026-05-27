@@ -1,0 +1,14 @@
+---
+title: 'Get entity resolution result'
+openapi: 'GET /v1/entity-resolution/{job_id}'
+---
+
+Poll this endpoint with the `job_id` returned by [Resolve entity](/api-reference/endpoint/create-entity-resolution) to check the status and retrieve the result.
+
+When the status is `completed`, the `result` object contains the resolved entity data. Check `match_status` to determine the outcome:
+
+- `matched` — a unique entity was identified. `kernel_id`, `legal_name`, and `trading_name` are populated.
+- `no_match` — no matching entity was found.
+- `ambiguous` — multiple potential matches were found. Consider providing additional input fields to disambiguate.
+
+Respect the `Retry-After` header from the creation response to avoid unnecessary polling.
