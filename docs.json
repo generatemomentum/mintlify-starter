@@ -14,6 +14,10 @@
     }
   },
   "favicon": "/favicon.svg",
+  "logo": {
+    "light": "/images/wordmark-black.png",
+    "dark": "/images/wordmark-white.png"
+  },
   "navigation": {
     "groups": [
       {
@@ -23,16 +27,11 @@
         ]
       },
       {
-        "group": "Research identity",
+        "group": "Entity resolution",
         "pages": [
-          "api-reference/endpoint/research-identity",
-          "api-reference/schemas/research-identity-result"
-        ]
-      },
-      {
-        "group": "Jobs",
-        "pages": [
-          "api-reference/endpoint/get-job"
+          "api-reference/endpoint/create-entity-resolution",
+          "api-reference/endpoint/get-entity-resolution",
+          "api-reference/schemas/entity-resolution-result"
         ]
       }
     ],
@@ -50,15 +49,15 @@
   },
   "contextual": {
     "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "perplexity",
+      "mcp",
+      "cursor",
+      "vscode"
+    ]
   },
   "footer": {}
 }
