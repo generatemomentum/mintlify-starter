@@ -34,10 +34,11 @@ All API endpoints are authenticated using an API key sent in the `X-API-Key` hea
 
 ## Job workflow
 
-Identity research runs asynchronously:
+Jobs run asynchronously across the API. Each async operation returns a job that you poll via the shared `GET /jobs/{job_id}` endpoint.
 
-1. Send a `POST` request to `/research-identity` with `name` and `website` to start a job. The response includes a `job_id`.
-2. Poll `GET /jobs/{job_id}` until `status` is `completed`.
-3. When complete, read `result.kernel_id` and `result.legal_name` from the response.
+1. Send a `POST` request to start a job (for example, `/research-identity` with `name` and `website`).
+2. The `202` response includes a `job_id`, a `Location` header pointing to the job status URL, and a `Retry-After` header with the suggested polling interval in seconds.
+3. Poll `GET /jobs/{job_id}` until `status` is `completed` or `failed`. Respect the `Retry-After` value between requests.
+4. When complete, read the typed `result` from the response. The shape of `result` depends on the job `type` field (for example, `research_identity` jobs return `kernel_id` and `legal_name`).
 
-While the job is in progress, the status will be `pending` or `processing`. If the job fails, `status` will be `failed`.
+While the job is in progress, `status` will be `pending` or `processing`.

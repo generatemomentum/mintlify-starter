@@ -36,6 +36,20 @@
         "responses": {
           "202": {
             "description": "Job created",
+            "headers": {
+              "Location": {
+                "description": "URI of the created job resource",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Retry-After": {
+                "description": "Suggested interval in seconds before polling the job status",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -59,7 +73,7 @@
     },
     "/jobs/{job_id}": {
       "get": {
-        "description": "Returns the status of an identity research job. When complete, includes the research result.",
+        "description": "Returns the status of a job. When complete, includes a typed result determined by the job type.",
         "parameters": [
           {
             "name": "job_id",
@@ -144,9 +158,10 @@
           }
         }
       },
-      "JobStatusResponse": {
+      "ResearchIdentityJobStatus": {
         "required": [
           "job_id",
+          "type",
           "status"
         ],
         "type": "object",
@@ -154,6 +169,13 @@
           "job_id": {
             "description": "Unique identifier for the job",
             "type": "string"
+          },
+          "type": {
+            "description": "Job type",
+            "type": "string",
+            "enum": [
+              "research_identity"
+            ]
           },
           "status": {
             "description": "Current status of the job",
@@ -168,6 +190,19 @@
           "result": {
             "description": "Research result, present when status is completed",
             "$ref": "#/components/schemas/ResearchIdentityResult"
+          }
+        }
+      },
+      "JobStatusResponse": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ResearchIdentityJobStatus"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "type",
+          "mapping": {
+            "research_identity": "#/components/schemas/ResearchIdentityJobStatus"
           }
         }
       },
