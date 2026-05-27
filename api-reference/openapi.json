@@ -140,10 +140,6 @@
   "components": {
     "schemas": {
       "ResearchIdentityRequest": {
-        "required": [
-          "name",
-          "website"
-        ],
         "type": "object",
         "properties": {
           "name": {
