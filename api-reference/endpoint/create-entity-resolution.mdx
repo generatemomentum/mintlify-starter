@@ -1,0 +1,10 @@
+---
+title: 'Resolve entity'
+openapi: 'POST /v1/entity-resolution'
+---
+
+Submit a company to resolve its identity. The endpoint returns `202` with a `job_id` immediately — poll the [Get entity resolution result](/api-reference/endpoint/get-entity-resolution) endpoint until the status is `completed`.
+
+<Note>
+Only `name` is required. Providing additional fields like `website`, `legal_name`, or `linkedin_url` improves resolution accuracy.
+</Note>
