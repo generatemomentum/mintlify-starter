@@ -1,6 +1,6 @@
 ---
 title: 'Introduction'
-description: 'Example section for showcasing API endpoints'
+description: 'Identity research API reference'
 ---
 
 <Note>
@@ -13,8 +13,8 @@ description: 'Example section for showcasing API endpoints'
 There are two ways to build API documentation: [OpenAPI](https://mintlify.com/docs/api-playground/openapi/setup) and [MDX components](https://mintlify.com/docs/api-playground/mdx/configuration). For the starter kit, we are using the following OpenAPI specification.
 
 <Card
-  title="Plant Store Endpoints"
-  icon="leaf"
+  title="Identity Research API"
+  icon="magnifying-glass"
   href="https://github.com/mintlify/starter/blob/main/api-reference/openapi.json"
 >
   View the OpenAPI specification file
@@ -22,12 +22,22 @@ There are two ways to build API documentation: [OpenAPI](https://mintlify.com/do
 
 ## Authentication
 
-All API endpoints are authenticated using Bearer tokens and picked up from the specification file.
+All API endpoints are authenticated using an API key sent in the `X-API-Key` header and picked up from the specification file.
 
 ```json
 "security": [
   {
-    "bearerAuth": []
+    "apiKeyAuth": []
   }
 ]
 ```
+
+## Job workflow
+
+Identity research runs asynchronously:
+
+1. Send a `POST` request to `/research-identity` with `name` and `website` to start a job. The response includes a `job_id`.
+2. Poll `GET /jobs/{job_id}` until `status` is `completed`.
+3. When complete, read `result.kernel_id` and `result.legal_name` from the response.
+
+While the job is in progress, the status will be `pending` or `processing`. If the job fails, `status` will be `failed`.
