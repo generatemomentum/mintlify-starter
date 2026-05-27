@@ -1,0 +1,12 @@
+---
+title: 'Completed result'
+openapi-schema: 'EntityResolutionResult'
+---
+
+This object is returned in `result` when you poll `GET /v1/entity-resolution/{job_id}` and `status` is `completed`.
+
+The `match_status` field indicates the resolution outcome:
+
+- `matched` — the entity was uniquely identified. `kernel_id`, `legal_name`, and `trading_name` contain the resolved values.
+- `no_match` — no matching entity was found. All value fields are `null`.
+- `ambiguous` — multiple potential matches exist. Consider providing additional input fields to narrow the result.
