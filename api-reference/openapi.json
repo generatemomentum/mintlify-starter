@@ -216,8 +216,18 @@
             ]
           },
           "result": {
-            "description": "Research result, present when status is completed",
-            "$ref": "#/components/schemas/ResearchIdentityResult"
+            "description": "Result payload, present when status is completed. Shape depends on job type.",
+            "anyOf": [
+              {
+                "title": "Research identity",
+                "$ref": "#/components/schemas/ResearchIdentityResult"
+              },
+              {
+                "title": "Other job types",
+                "type": "object",
+                "description": "Shape varies by job type. See the operation's Completed result page."
+              }
+            ]
           }
         }
       },
