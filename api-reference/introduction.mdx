@@ -1,28 +1,40 @@
 ---
 title: 'Introduction'
-description: 'Identity research API reference'
+description: 'Kernel API reference'
 ---
 
 ## Welcome
 
+The Kernel API provides programmatic access to company entity resolution and data enrichment.
+
 <Card
-  title="Identity Research API"
+  title="OpenAPI specification"
   icon="magnifying-glass"
   href="https://github.com/mintlify/starter/blob/main/api-reference/openapi.json"
 >
-  View the OpenAPI specification file
+  View the full OpenAPI specification file
 </Card>
 
 ## Authentication
 
-All API endpoints are authenticated using an API key sent in the `X-API-Key` header.
+All API endpoints are authenticated using a Bearer token in the `Authorization` header:
 
-## Job workflow
+```
+Authorization: Bearer <api-key>
+```
+
+You can generate and manage API keys from your Kernel dashboard.
+
+## Async workflow
 
 All operations run asynchronously. Each one returns a `job_id` you poll until the result is ready.
 
-1. **Start** — call the operation endpoint (e.g. [Research identity](/api-reference/endpoint/research-identity)) with its required fields.
-2. **Poll** — call [Poll job status](/api-reference/endpoint/get-job) with the `job_id`. Respect the `Retry-After` header between requests.
-3. **Read result** — when `status` is `completed`, the typed `result` is included. Its shape depends on the job `type` — see the operation's **Completed result** page for the schema.
+1. **Start** — call the operation endpoint (e.g. [Resolve entity](/api-reference/endpoint/create-entity-resolution)) with the company details.
+2. **Poll** — call [Get entity resolution result](/api-reference/endpoint/get-entity-resolution) with the `job_id`. Respect the `Retry-After` header between requests.
+3. **Read result** — when `status` is `completed`, the `result` object is included. Check `match_status` to determine the outcome: `matched`, `no_match`, or `ambiguous`.
 
-While in progress, `status` will be `pending` or `processing`. If processing fails, `status` will be `failed`.
+While in progress, `status` will be `pending` or `processing`. If processing fails, `status` will be `failed` and an `error` object is included.
+
+## Rate limits
+
+API requests are rate-limited per key. If you exceed your limit, the API returns a `429` response with a `Retry-After` header indicating when to retry.
