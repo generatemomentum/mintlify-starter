@@ -1,0 +1,68 @@
+---
+title: 'Quickstart'
+description: 'Resolve your first company in under two minutes'
+icon: 'rocket'
+---
+
+Resolve a company to its canonical entity using the Kernel API. You'll make two API calls: one to start the job, and one to get the result.
+
+## Prerequisites
+
+- A Kernel API key — [get one from your dashboard](https://dashboard.kernel.ai)
+- `curl` in your terminal (or use the examples below in any HTTP client)
+
+## 1. Start entity resolution
+
+Send a `POST` request with at least a company name:
+
+```bash curl
+curl -X POST https://api.kernel.ai/v1/entity-resolution \
+  -H "Authorization: Bearer $KERNEL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Stripe"}'
+```
+
+You'll receive a `202` with a job ID:
+
+```json Response (202)
+{
+  "job_id": "job_abc123"
+}
+```
+
+## 2. Get the result
+
+Poll the job endpoint with the ID from step 1:
+
+```bash curl
+curl https://api.kernel.ai/v1/entity-resolution/job_abc123 \
+  -H "Authorization: Bearer $KERNEL_API_KEY"
+```
+
+When the job is complete, you'll get the resolved entity:
+
+```json Response (200)
+{
+  "job_id": "job_abc123",
+  "status": "completed",
+  "result": {
+    "kernel_id": "6347422643",
+    "match_status": "matched",
+    "legal_name": "Stripe, Inc.",
+    "trading_name": "Stripe"
+  }
+}
+```
+
+The `kernel_id` is a KERN ID — a persistent, 10-digit identifier. The same company always resolves to the same KERN ID. Use it as a foreign key across your systems.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="API reference" icon="book" href="/api-reference/introduction">
+    Full endpoint documentation, authentication, and error handling.
+  </Card>
+  <Card title="Improve accuracy" icon="bullseye" href="/api-reference/endpoint/create-entity-resolution">
+    Learn which optional fields improve resolution quality.
+  </Card>
+</CardGroup>
