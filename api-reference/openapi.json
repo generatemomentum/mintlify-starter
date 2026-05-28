@@ -3,14 +3,24 @@
   "info": {
     "title": "Kernel API",
     "description": "API for resolving company identity and retrieving entity data asynchronously",
+    "version": "1.0.0",
+    "contact": {
+      "email": "support@kernel.ai"
+    },
     "license": {
       "name": "MIT"
-    },
-    "version": "1.0.0"
+    }
   },
   "servers": [
     {
-      "url": "https://api.kernel.ai"
+      "url": "https://api.kernel.ai",
+      "description": "Production"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Entity Resolution",
+      "description": "Resolve a company to a canonical entity"
     }
   ],
   "security": [
@@ -21,6 +31,8 @@
   "paths": {
     "/v1/entity-resolution": {
       "post": {
+        "operationId": "resolveEntity",
+        "tags": ["Entity Resolution"],
         "summary": "Resolve entity",
         "description": "Starts an entity resolution job for a company. Returns immediately with a job ID — poll `GET /v1/entity-resolution/{job_id}` until the status is `completed`.",
         "x-mint": {
@@ -32,6 +44,28 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/EntityResolutionRequest"
+              },
+              "examples": {
+                "minimal": {
+                  "summary": "Minimal — name only",
+                  "value": {
+                    "name": "Acme Corporation"
+                  }
+                },
+                "full": {
+                  "summary": "Full — all fields",
+                  "value": {
+                    "name": "Acme Corporation",
+                    "website": "https://acme.com",
+                    "legal_name": "Acme Corporation Inc.",
+                    "linkedin_url": "https://linkedin.com/company/acme",
+                    "email": "info@acme.com",
+                    "address": "123 Main St",
+                    "city": "San Francisco",
+                    "state": "CA",
+                    "country": "US"
+                  }
+                }
               }
             }
           },
@@ -44,13 +78,15 @@
               "Location": {
                 "description": "URI of the created job resource",
                 "schema": {
-                  "type": "string"
+                  "type": "string",
+                  "example": "/v1/entity-resolution/job_abc123"
                 }
               },
               "Retry-After": {
                 "description": "Suggested interval in seconds before polling the job status",
                 "schema": {
-                  "type": "integer"
+                  "type": "integer",
+                  "example": 2
                 }
               }
             },
@@ -58,16 +94,35 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/JobCreatedResponse"
+                },
+                "example": {
+                  "job_id": "job_abc123"
                 }
               }
             }
           },
           "400": {
-            "description": "Invalid request",
+            "description": "Invalid request — missing required field or malformed input",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "missing_name": {
+                    "summary": "Missing required field",
+                    "value": {
+                      "error": 400,
+                      "message": "Request body must include 'name'."
+                    }
+                  },
+                  "empty_name": {
+                    "summary": "Empty name",
+                    "value": {
+                      "error": 400,
+                      "message": "'name' must not be empty."
+                    }
+                  }
                 }
               }
             }
@@ -78,6 +133,10 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": 401,
+                  "message": "Invalid API key."
                 }
               }
             }
@@ -88,6 +147,24 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": 429,
+                  "message": "Rate limit exceeded. Retry after 60 seconds."
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": 500,
+                  "message": "Internal processing error. Please retry."
                 }
               }
             }
@@ -97,8 +174,13 @@
     },
     "/v1/entity-resolution/{job_id}": {
       "get": {
+        "operationId": "getEntityResolution",
+        "tags": ["Entity Resolution"],
         "summary": "Get entity resolution result",
         "description": "Returns the status and result of an entity resolution job. When `status` is `completed`, the `result` object contains the resolved entity data.",
+        "x-mint": {
+          "content": "## Status lifecycle\n\nJobs follow a linear progression to a terminal state:\n\n```\npending → processing → completed | failed\n```\n\nOnce a job reaches `completed` or `failed`, the status does not change.\n\n## Polling guidance\n\n- Respect the `Retry-After` header from the creation response.\n- Use exponential backoff if the header is absent: start at 2 seconds, double up to 30 seconds.\n- If a job has not completed within 60 seconds, treat it as failed and retry or contact support.\n- Job results are available for **24 hours** after creation."
+        },
         "parameters": [
           {
             "name": "job_id",
@@ -106,7 +188,9 @@
             "description": "ID of the entity resolution job",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "pattern": "^job_",
+              "example": "job_abc123"
             }
           }
         ],
@@ -159,6 +243,19 @@
                       }
                     }
                   },
+                  "completed_ambiguous": {
+                    "summary": "Completed — ambiguous",
+                    "value": {
+                      "job_id": "job_abc123",
+                      "status": "completed",
+                      "result": {
+                        "kernel_id": null,
+                        "match_status": "ambiguous",
+                        "legal_name": null,
+                        "trading_name": null
+                      }
+                    }
+                  },
                   "failed": {
                     "summary": "Job failed",
                     "value": {
@@ -180,16 +277,38 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": 401,
+                  "message": "Invalid API key."
                 }
               }
             }
           },
           "404": {
-            "description": "Job not found",
+            "description": "Job not found — the job ID does not exist or has expired",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": 404,
+                  "message": "Job not found."
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": 500,
+                  "message": "Internal processing error. Please retry."
                 }
               }
             }
@@ -207,41 +326,62 @@
         ],
         "properties": {
           "name": {
-            "description": "Company name",
-            "type": "string"
+            "description": "The company name to resolve. This can be a legal name, trading name, or common abbreviation. Names are normalized automatically — case, punctuation, and common suffixes (Inc., LLC, Ltd.) do not need to be stripped.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500,
+            "example": "Acme Corporation"
           },
           "website": {
-            "description": "Company website URL",
-            "type": "string"
+            "description": "Company website URL, including scheme.",
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "example": "https://acme.com"
           },
           "legal_name": {
-            "description": "Legal or registered name of the company",
-            "type": "string"
+            "description": "Legal or registered name of the company, if known. Useful when the trading name differs from the registered entity.",
+            "type": "string",
+            "maxLength": 500,
+            "example": "Acme Corporation Inc."
           },
           "linkedin_url": {
-            "description": "Company LinkedIn profile URL",
-            "type": "string"
+            "description": "LinkedIn company page URL. Personal profile URLs are not used for matching.",
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "example": "https://linkedin.com/company/acme"
           },
           "email": {
-            "description": "Company or account email address",
+            "description": "An email address at the company's domain. Only the domain portion is used for matching.",
             "type": "string",
-            "format": "email"
+            "format": "email",
+            "maxLength": 254,
+            "example": "info@acme.com"
           },
           "address": {
-            "description": "Street address",
-            "type": "string"
+            "description": "Street address line.",
+            "type": "string",
+            "maxLength": 500,
+            "example": "123 Main St"
           },
           "city": {
-            "description": "City",
-            "type": "string"
+            "description": "City.",
+            "type": "string",
+            "maxLength": 200,
+            "example": "San Francisco"
           },
           "state": {
-            "description": "State or region",
-            "type": "string"
+            "description": "State, province, or region. Full name or code accepted.",
+            "type": "string",
+            "maxLength": 200,
+            "example": "CA"
           },
           "country": {
-            "description": "Country",
-            "type": "string"
+            "description": "ISO 3166-1 alpha-2 country code preferred. Full names also accepted.",
+            "type": "string",
+            "maxLength": 100,
+            "example": "US"
           }
         }
       },
@@ -252,8 +392,9 @@
         "type": "object",
         "properties": {
           "job_id": {
-            "description": "Unique identifier for the created job",
-            "type": "string"
+            "description": "Unique identifier for the created job. Prefixed with `job_`.",
+            "type": "string",
+            "example": "job_abc123"
           }
         }
       },
@@ -267,14 +408,15 @@
         "type": "object",
         "properties": {
           "kernel_id": {
-            "description": "Kernel identifier for the company. Null when no match is found.",
+            "description": "Stable, unique identifier for the resolved entity. Use it as a foreign key in your systems — the same legal entity always resolves to the same `kernel_id`. Null when `match_status` is `no_match` or `ambiguous`.",
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "example": "ker_abc123"
           },
           "match_status": {
-            "description": "Indicates the outcome of the resolution",
+            "description": "Outcome of the resolution",
             "type": "string",
             "enum": [
               "matched",
@@ -283,18 +425,20 @@
             ]
           },
           "legal_name": {
-            "description": "Legal name of the resolved entity. Null when no match is found.",
+            "description": "Registered legal name of the resolved entity. Null when `match_status` is `no_match` or `ambiguous`.",
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "example": "Acme Corporation Inc."
           },
           "trading_name": {
-            "description": "Trading or brand name of the resolved entity. Null when no match is found.",
+            "description": "Primary trading or brand name of the resolved entity. Null when `match_status` is `no_match` or `ambiguous`.",
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "example": "Acme"
           }
         }
       },
@@ -308,10 +452,11 @@
         "properties": {
           "job_id": {
             "description": "Unique identifier for the job",
-            "type": "string"
+            "type": "string",
+            "example": "job_abc123"
           },
           "status": {
-            "description": "Current status of the job",
+            "description": "Current status of the job. Terminal states are `completed` and `failed`.",
             "type": "string",
             "enum": [
               "pending",
@@ -321,11 +466,11 @@
             ]
           },
           "result": {
-            "description": "Result payload, present when status is completed.",
+            "description": "Result payload. Present when `status` is `completed`.",
             "$ref": "#/components/schemas/EntityResolutionResult"
           },
           "error": {
-            "description": "Error details, present when status is failed.",
+            "description": "Error details. Present when `status` is `failed`.",
             "$ref": "#/components/schemas/Error"
           }
         }
@@ -338,11 +483,15 @@
         "type": "object",
         "properties": {
           "error": {
+            "description": "HTTP status code or application error code.",
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "example": 400
           },
           "message": {
-            "type": "string"
+            "description": "Human-readable error description.",
+            "type": "string",
+            "example": "Request body must include 'name'."
           }
         }
       }
