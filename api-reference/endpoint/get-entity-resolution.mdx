@@ -5,10 +5,107 @@ openapi: 'GET /v1/entity-resolution/{job_id}'
 
 Poll this endpoint with the `job_id` returned by [Resolve entity](/api-reference/endpoint/create-entity-resolution) to check the status and retrieve the result.
 
-When the status is `completed`, the `result` object contains the resolved entity data. Check `match_status` to determine the outcome:
+## Status lifecycle
 
-- `matched` — a unique entity was identified. `kernel_id`, `legal_name`, and `trading_name` are populated.
-- `no_match` — no matching entity was found.
-- `ambiguous` — multiple potential matches were found. Consider providing additional input fields to disambiguate.
+Jobs progress linearly to a terminal state:
 
-Respect the `Retry-After` header from the creation response to avoid unnecessary polling.
+```
+pending → processing → completed | failed
+```
+
+Once a job reaches `completed` or `failed`, the status does not change.
+
+## match_status outcomes
+
+When `status` is `completed`, check `match_status`:
+
+| Value | Meaning | Fields populated |
+|---|---|---|
+| `matched` | A unique entity was identified | `kernel_id`, `legal_name`, `trading_name` |
+| `no_match` | No matching entity was found | All fields are `null` |
+| `ambiguous` | Multiple potential matches exist | All fields are `null` — resubmit with more fields |
+
+For `ambiguous` results, create a new resolution job with additional identifying fields (e.g. `website`, `country`). The new job will have a different `job_id`.
+
+## Example
+
+```bash curl
+curl https://api.kernel.ai/v1/entity-resolution/job_abc123 \
+  -H "Authorization: Bearer $KERNEL_API_KEY"
+```
+
+```json Response (200) — matched
+{
+  "job_id": "job_abc123",
+  "status": "completed",
+  "result": {
+    "kernel_id": "6347422643",
+    "match_status": "matched",
+    "legal_name": "Stripe, Inc.",
+    "trading_name": "Stripe"
+  }
+}
+```
+
+```json Response (200) — no match
+{
+  "job_id": "job_abc123",
+  "status": "completed",
+  "result": {
+    "kernel_id": null,
+    "match_status": "no_match",
+    "legal_name": null,
+    "trading_name": null
+  }
+}
+```
+
+```json Response (200) — still processing
+{
+  "job_id": "job_abc123",
+  "status": "processing"
+}
+```
+
+## Polling guidance
+
+- Respect the `Retry-After` header from the creation response (typically 2 seconds).
+- If no header is present, use exponential backoff: start at 2 seconds, double up to 30 seconds.
+- Most jobs complete within **2–10 seconds**. If a job has not completed within **60 seconds**, treat it as failed and retry or contact support.
+- Job results are available for **24 hours** after creation. After that, polling returns `404`.
+
+### Polling example
+
+```python Python
+import time
+import requests
+
+API_KEY = "ker_your_api_key"
+BASE_URL = "https://api.kernel.ai"
+HEADERS = {"Authorization": f"Bearer {API_KEY}"}
+
+def resolve_entity(name, **kwargs):
+    body = {"name": name, **kwargs}
+    resp = requests.post(f"{BASE_URL}/v1/entity-resolution", json=body, headers=HEADERS)
+    resp.raise_for_status()
+    return resp.json()["job_id"]
+
+def poll_result(job_id, timeout=60):
+    start = time.time()
+    interval = 2
+    while time.time() - start < timeout:
+        resp = requests.get(f"{BASE_URL}/v1/entity-resolution/{job_id}", headers=HEADERS)
+        resp.raise_for_status()
+        data = resp.json()
+        if data["status"] == "completed":
+            return data["result"]
+        if data["status"] == "failed":
+            raise Exception(data.get("error", {}).get("message", "Job failed"))
+        interval = min(interval * 2, 30)
+        time.sleep(interval)
+    raise Exception(f"Job {job_id} did not complete within {timeout}s")
+
+job_id = resolve_entity("Stripe")
+result = poll_result(job_id)
+print(result["kernel_id"])  # 6347422643
+```
