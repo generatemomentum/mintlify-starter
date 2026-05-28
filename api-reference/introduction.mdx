@@ -3,38 +3,87 @@ title: 'Introduction'
 description: 'Kernel API reference'
 ---
 
-## Welcome
+## Base URL
 
-The Kernel API provides programmatic access to company entity resolution and data enrichment.
+```
+https://api.kernel.ai
+```
 
-<Card
-  title="OpenAPI specification"
-  icon="magnifying-glass"
-  href="https://github.com/mintlify/starter/blob/main/api-reference/openapi.json"
->
-  View the full OpenAPI specification file
-</Card>
+All requests must be sent to this base URL over HTTPS.
+
+## What is entity resolution?
+
+Entity resolution is the reasoning-based process Kernel uses to decide what real-world entity a company record represents. It uses names, websites, addresses, LinkedIn URLs, email domains, and other signals — not just a simple name lookup — to match records to a canonical entity in Kernel's database.
+
+Each resolved entity gets a **KERN ID**: a persistent, 10-digit numeric identifier that uniquely identifies the entity worldwide. Use it as a foreign key across your systems.
+
+The process is asynchronous — you submit a company, get back a job ID, and poll for the result.
 
 ## Authentication
 
-All API endpoints are authenticated using a Bearer token in the `Authorization` header:
+All endpoints are authenticated using a Bearer token in the `Authorization` header:
 
 ```
 Authorization: Bearer <api-key>
 ```
 
-You can generate and manage API keys from your Kernel dashboard.
+Generate and manage API keys from your [Kernel dashboard](https://dashboard.kernel.ai). API keys are prefixed with `ker_`.
+
+<Tip>
+Store your API key in an environment variable and never commit it to source control.
+
+```bash
+export KERNEL_API_KEY="ker_your_api_key_here"
+```
+</Tip>
 
 ## Async workflow
 
 All operations run asynchronously. Each one returns a `job_id` you poll until the result is ready.
 
-1. **Start** — call the operation endpoint (e.g. [Resolve entity](/api-reference/endpoint/create-entity-resolution)) with the company details.
+1. **Start** — call [Resolve entity](/api-reference/endpoint/create-entity-resolution) with the company details.
 2. **Poll** — call [Get entity resolution result](/api-reference/endpoint/get-entity-resolution) with the `job_id`. Respect the `Retry-After` header between requests.
 3. **Read result** — when `status` is `completed`, the `result` object is included. Check `match_status` to determine the outcome: `matched`, `no_match`, or `ambiguous`.
 
-While in progress, `status` will be `pending` or `processing`. If processing fails, `status` will be `failed` and an `error` object is included.
+Jobs transition linearly: `pending` → `processing` → `completed` | `failed`. Terminal states do not change.
+
+Most entity resolution jobs complete within **2–10 seconds**.
+
+## Data formats
+
+The API uses the following standards for structured fields:
+
+| Data type | Standard | Example |
+|---|---|---|
+| Country | ISO 3166-1 alpha-2 | `US`, `GB`, `DE` |
+| Date and time | ISO 8601 | `2025-05-28T14:30:00Z` |
+| Currency | ISO 4217 | `USD`, `EUR` |
+
+## Errors
+
+The API uses standard HTTP status codes:
+
+| Status | Meaning | Action |
+|---|---|---|
+| `400` | Invalid request — missing or malformed field | Fix the request body and retry |
+| `401` | Unauthorized — missing or invalid API key | Check your API key |
+| `404` | Job not found or expired | Verify the `job_id` or submit a new job |
+| `429` | Rate limit exceeded | Wait for `Retry-After` seconds, then retry |
+| `500` | Internal server error | Retry with exponential backoff |
+
+Error responses include a JSON body:
+
+```json
+{
+  "error": 400,
+  "message": "Request body must include 'name'."
+}
+```
 
 ## Rate limits
 
 API requests are rate-limited per key. If you exceed your limit, the API returns a `429` response with a `Retry-After` header indicating when to retry.
+
+## Versioning
+
+The current API version is **v1**. We will give at least 6 months notice before deprecating a version. Breaking changes will always be introduced under a new path prefix (e.g. `/v2/`).
