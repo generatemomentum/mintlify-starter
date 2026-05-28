@@ -1,23 +1,21 @@
 ---
 title: "Kernel API"
-description: "Company entity resolution and data enrichment API"
+description: "Resolve company identities to canonical entities with a simple async API"
 icon: 'star'
 ---
 
-## Getting started
-
-Resolve company identities and retrieve structured entity data through a simple async API.
+Resolve company identities with a stable, canonical entity ID. The Kernel API matches messy, inconsistent company names and attributes to a single entity using agentic identity resolution.
 
 <Card
-  title="API reference"
-  icon="book"
-  href="/api-reference/introduction"
+  title="Quickstart"
+  icon="rocket"
+  href="/guides/quickstart"
   horizontal
 >
-  Authentication, workflow, and rate limits.
+  Resolve your first company in under two minutes.
 </Card>
 
-## Endpoints
+## API reference
 
 <Columns cols={2}>
   <Card
@@ -25,25 +23,13 @@ Resolve company identities and retrieve structured entity data through a simple 
     icon="magnifying-glass"
     href="/api-reference/endpoint/create-entity-resolution"
   >
-    Submit a company to resolve its identity. Returns a job ID to poll for results.
+    Submit a company to resolve its identity.
   </Card>
   <Card
     title="Get result"
     icon="rotate"
     href="/api-reference/endpoint/get-entity-resolution"
   >
-    Poll for the status and result of an entity resolution job.
-  </Card>
-</Columns>
-
-## Schemas
-
-<Columns cols={2}>
-  <Card
-    title="Completed result"
-    icon="check-circle"
-    href="/api-reference/schemas/entity-resolution-result"
-  >
-    The result schema returned when an entity resolution job completes.
+    Poll for the status and result of a resolution job.
   </Card>
 </Columns>
