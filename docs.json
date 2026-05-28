@@ -21,17 +21,28 @@
   "navigation": {
     "groups": [
       {
-        "group": "Overview",
+        "group": "Getting started",
         "pages": [
-          "api-reference/introduction"
+          {
+            "group": "Quickstart",
+            "pages": [
+              "guides/quickstart"
+            ]
+          }
         ]
       },
       {
-        "group": "Entity resolution",
+        "group": "API reference",
         "pages": [
-          "api-reference/endpoint/create-entity-resolution",
-          "api-reference/endpoint/get-entity-resolution",
-          "api-reference/schemas/entity-resolution-result"
+          "api-reference/introduction",
+          {
+            "group": "Entity resolution",
+            "pages": [
+              "api-reference/endpoint/create-entity-resolution",
+              "api-reference/endpoint/get-entity-resolution",
+              "api-reference/schemas/entity-resolution-result"
+            ]
+          }
         ]
       }
     ],
@@ -43,7 +54,7 @@
     "links": [
       {
         "label": "Support",
-        "href": "mailto:support@kernel.com"
+        "href": "mailto:support@kernel.ai"
       }
     ]
   },
@@ -58,6 +69,10 @@
       "cursor",
       "vscode"
     ]
+  },
+  "feedback": {
+    "suggestEdit": true,
+    "raiseIssue": true
   },
   "footer": {}
 }
