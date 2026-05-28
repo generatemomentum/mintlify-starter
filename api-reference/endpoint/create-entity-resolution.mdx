@@ -6,5 +6,68 @@ openapi: 'POST /v1/entity-resolution'
 Submit a company to resolve its identity. The endpoint returns `202` with a `job_id` immediately — poll the [Get entity resolution result](/api-reference/endpoint/get-entity-resolution) endpoint until the status is `completed`.
 
 <Note>
-Only `name` is required. Providing additional fields like `website`, `legal_name`, or `linkedin_url` improves resolution accuracy.
+Only `name` is required. Providing additional fields improves resolution accuracy — see the ranking below.
 </Note>
+
+## Examples
+
+### Minimal — name only
+
+```bash curl
+curl -X POST https://api.kernel.ai/v1/entity-resolution \
+  -H "Authorization: Bearer $KERNEL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Stripe"}'
+```
+
+```json Response (202)
+{
+  "job_id": "job_abc123"
+}
+```
+
+### Full — all fields
+
+```bash curl
+curl -X POST https://api.kernel.ai/v1/entity-resolution \
+  -H "Authorization: Bearer $KERNEL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Stripe",
+    "website": "https://stripe.com",
+    "legal_name": "Stripe, Inc.",
+    "linkedin_url": "https://linkedin.com/company/stripe",
+    "email": "info@stripe.com",
+    "city": "South San Francisco",
+    "state": "CA",
+    "country": "US"
+  }'
+```
+
+```json Response (202)
+{
+  "job_id": "job_def456"
+}
+```
+
+## Improving accuracy
+
+Optional fields improve resolution accuracy, ranked by impact:
+
+1. **`website`** — the strongest disambiguator after the company name
+2. **`country`** — especially useful for common names that appear in multiple countries
+3. **`linkedin_url`** — high confidence when available
+4. **`email`** — only the domain is used, but it is a strong signal
+5. **`legal_name`** — helpful when the trading name differs from the registered entity
+6. **`state`** — secondary geographic signal
+7. **`city`** — secondary geographic signal
+8. **`address`** — useful for distinguishing regional entities
+
+## Input normalization
+
+You do not need to clean or normalize inputs before sending them:
+
+- Company names are case-insensitive — `"ACME CORP"`, `"Acme Corp"`, and `"acme corp"` are equivalent
+- Common suffixes like `Inc.`, `LLC`, `Ltd.`, `GmbH` are handled automatically
+- Website URLs are normalized — `"acme.com"` and `"https://www.acme.com/"` resolve the same way
+- Country accepts both codes (`"US"`) and full names (`"United States"`)
