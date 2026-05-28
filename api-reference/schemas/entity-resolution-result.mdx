@@ -5,8 +5,63 @@ openapi-schema: 'EntityResolutionResult'
 
 This object is returned in `result` when you poll `GET /v1/entity-resolution/{job_id}` and `status` is `completed`.
 
-The `match_status` field indicates the resolution outcome:
+The `match_status` field indicates the resolution outcome. The result may include additional fields in the future — your code should ignore unknown fields to maintain forward compatibility.
 
-- `matched` — the entity was uniquely identified. `kernel_id`, `legal_name`, and `trading_name` contain the resolved values.
-- `no_match` — no matching entity was found. All value fields are `null`.
-- `ambiguous` — multiple potential matches exist. Consider providing additional input fields to narrow the result.
+## Fields
+
+### `kernel_id`
+
+`string | null` — The KERN ID: a persistent, 10-digit numeric identifier that uniquely identifies the resolved entity. The same legal entity always resolves to the same KERN ID. Use it as a foreign key in your database.
+
+`null` when `match_status` is `no_match` or `ambiguous`.
+
+### `match_status`
+
+`string` — Outcome of the resolution. One of:
+
+| Value | Meaning |
+|---|---|
+| `matched` | A unique entity was identified |
+| `no_match` | No matching entity was found |
+| `ambiguous` | Multiple potential matches exist — resubmit with more fields |
+
+### `legal_name`
+
+`string | null` — Registered legal name of the resolved entity (e.g. `"Stripe, Inc."`).
+
+`null` when `match_status` is `no_match` or `ambiguous`.
+
+### `trading_name`
+
+`string | null` — Primary trading or brand name of the resolved entity (e.g. `"Stripe"`). This may differ from the `legal_name`.
+
+`null` when `match_status` is `no_match` or `ambiguous`.
+
+## Examples
+
+```json matched
+{
+  "kernel_id": "6347422643",
+  "match_status": "matched",
+  "legal_name": "Stripe, Inc.",
+  "trading_name": "Stripe"
+}
+```
+
+```json no_match
+{
+  "kernel_id": null,
+  "match_status": "no_match",
+  "legal_name": null,
+  "trading_name": null
+}
+```
+
+```json ambiguous
+{
+  "kernel_id": null,
+  "match_status": "ambiguous",
+  "legal_name": null,
+  "trading_name": null
+}
+```
