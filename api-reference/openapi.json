@@ -36,7 +36,7 @@
         "summary": "Resolve entity",
         "description": "Starts an entity resolution job for a company. Returns immediately with a job ID — poll `GET /v1/entity-resolution/{job_id}` until the status is `completed`.",
         "x-mint": {
-          "content": "## Completed result\n\nThis endpoint returns `202` with a `job_id` immediately. Poll `GET /v1/entity-resolution/{job_id}` until `status` is `completed`, then read the result:\n\n```json\n{\n  \"job_id\": \"job_abc123\",\n  \"status\": \"completed\",\n  \"result\": {\n    \"kernel_id\": \"ker_abc123\",\n    \"match_status\": \"matched\",\n    \"legal_name\": \"Acme Corporation Inc.\",\n    \"trading_name\": \"Acme\"\n  }\n}\n```\n\nSee the [Completed result](/api-reference/schemas/entity-resolution-result) page for the full schema."
+          "content": "## Completed result\n\nThis endpoint returns `202` with a `job_id` immediately. Poll `GET /v1/entity-resolution/{job_id}` until `status` is `completed`, then read the result:\n\n```json\n{\n  \"job_id\": \"job_abc123\",\n  \"status\": \"completed\",\n  \"result\": {\n    \"kernel_id\": \"6347422643\",\n    \"match_status\": \"matched\",\n    \"legal_name\": \"Acme Corporation Inc.\",\n    \"trading_name\": \"Acme\"\n  }\n}\n```\n\nSee the [Completed result](/api-reference/schemas/entity-resolution-result) page for the full schema."
         },
         "requestBody": {
           "description": "Company to resolve",
@@ -223,7 +223,7 @@
                       "job_id": "job_abc123",
                       "status": "completed",
                       "result": {
-                        "kernel_id": "ker_abc123",
+                        "kernel_id": "6347422643",
                         "match_status": "matched",
                         "legal_name": "Acme Corporation Inc.",
                         "trading_name": "Acme"
@@ -408,12 +408,12 @@
         "type": "object",
         "properties": {
           "kernel_id": {
-            "description": "Stable, unique identifier for the resolved entity. Use it as a foreign key in your systems — the same legal entity always resolves to the same `kernel_id`. Null when `match_status` is `no_match` or `ambiguous`.",
+            "description": "The KERN ID — a persistent, 10-digit numeric identifier that uniquely identifies the resolved entity. The same legal entity always resolves to the same KERN ID. Null when `match_status` is `no_match` or `ambiguous`.",
             "type": [
               "string",
               "null"
             ],
-            "example": "ker_abc123"
+            "example": "6347422643"
           },
           "match_status": {
             "description": "Outcome of the resolution",
